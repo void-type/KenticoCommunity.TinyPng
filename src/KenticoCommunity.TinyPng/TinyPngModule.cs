@@ -103,9 +103,9 @@ public class TinyPngModule : Module
             return;
         }
 
-        var stream = Shrink(attachmentHistory.AttachmentBinary, settings);
-        attachmentHistory.AttachmentBinary = stream.ToArray();
-        attachmentHistory.AttachmentSize = ValidationHelper.GetInteger(stream.Length, 0);
+        var newBinary = Shrink(attachmentHistory.AttachmentBinary, settings);
+        attachmentHistory.AttachmentBinary = newBinary.ToArray();
+        attachmentHistory.AttachmentSize = ValidationHelper.GetInteger(newBinary.Length, 0);
     }
 
     private void ShrinkAttachment(AttachmentInfo attachment, ITinyPngSettingsProvider settings)
@@ -117,6 +117,7 @@ public class TinyPngModule : Module
 
         var document = DocumentHelper.GetDocument(attachment.AttachmentDocumentID, new TreeProvider());
 
+        // If the attachment is on a document under workflow, we should ignore and let attachment history take over.
         if (document.WorkflowStep != null)
         {
             return;
@@ -124,14 +125,31 @@ public class TinyPngModule : Module
 
         var currentAttachment = AttachmentInfo.Provider.GetWithoutBinary(attachment.AttachmentID);
 
-        if (currentAttachment != null && currentAttachment.AttachmentSize == attachment.AttachmentSize)
+        // If the attachment is the same, then ignore so we don't re-shrink the same image.
+        if (IsSame(attachment, currentAttachment))
         {
             return;
         }
 
-        var stream = Shrink(attachment.AttachmentBinary, settings);
-        attachment.AttachmentBinary = stream.ToArray();
-        attachment.AttachmentSize = ValidationHelper.GetInteger(stream.Length, 0);
+        var newBinary = Shrink(attachment.AttachmentBinary, settings);
+        attachment.AttachmentBinary = newBinary.ToArray();
+        attachment.AttachmentSize = ValidationHelper.GetInteger(newBinary.Length, 0);
+    }
+
+    private static bool IsSame(AttachmentInfo a, AttachmentInfo b)
+    {
+        if (a is null || b is null)
+        {
+            return false;
+        }
+
+        if (!string.IsNullOrWhiteSpace(a.AttachmentHash) && !string.IsNullOrWhiteSpace(b.AttachmentHash))
+        {
+            return a.AttachmentHash == b.AttachmentHash;
+        }
+
+        // If no hash, use size. It's not perfect, but probably unlikely to result in a false positive.
+        return a.AttachmentSize == b.AttachmentSize;
     }
 
     private void ShrinkMediaFile(MediaFileInfo mediaFile, ITinyPngSettingsProvider settings)
@@ -143,9 +161,9 @@ public class TinyPngModule : Module
 
         var originalBinary = mediaFile.FileBinary ?? GetMediaBinary(mediaFile);
 
-        var stream = Shrink(originalBinary, settings);
-        mediaFile.FileBinary = stream.ToArray();
-        mediaFile.FileSize = ValidationHelper.GetInteger(stream.Length, 0);
+        var newBinary = Shrink(originalBinary, settings);
+        mediaFile.FileBinary = newBinary.ToArray();
+        mediaFile.FileSize = ValidationHelper.GetInteger(newBinary.Length, 0);
     }
 
     private static byte[] GetMediaBinary(MediaFileInfo mediaFile)
@@ -162,9 +180,9 @@ public class TinyPngModule : Module
 
         var originalBinary = metaFile.MetaFileBinary ?? GetMetaBinary(metaFile);
 
-        var stream = Shrink(originalBinary, settings);
-        metaFile.MetaFileBinary = stream.ToArray();
-        metaFile.MetaFileSize = ValidationHelper.GetInteger(stream.Length, 0);
+        var newBinary = Shrink(originalBinary, settings);
+        metaFile.MetaFileBinary = newBinary.ToArray();
+        metaFile.MetaFileSize = ValidationHelper.GetInteger(newBinary.Length, 0);
     }
 
     private static byte[] GetMetaBinary(MetaFileInfo metaFile)
