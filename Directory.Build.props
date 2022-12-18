@@ -1,6 +1,6 @@
 <Project>
   <PropertyGroup>
-    <TargetFrameworks>netstandard2.0</TargetFrameworks>
+    <TargetFrameworks>net48</TargetFrameworks>
     <LangVersion>10.0</LangVersion>
     <GenerateFullPaths>true</GenerateFullPaths>
   </PropertyGroup>

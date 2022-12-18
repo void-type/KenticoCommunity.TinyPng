@@ -81,15 +81,15 @@ public class TinyPngModule : Module
         }
     }
 
-    private void ShrinkAttachmentHistory(AttachmentHistoryInfo attachmentHistory, ITinyPngSettingsProvider settings)
+    private void ShrinkAttachmentHistory(AttachmentHistoryInfo newAttachmentHistory, ITinyPngSettingsProvider settings)
     {
-        if (!IsExtensionAllowed(attachmentHistory.AttachmentExtension, settings))
+        if (!IsExtensionAllowed(newAttachmentHistory.AttachmentExtension, settings))
         {
             return;
         }
 
-        var latest = AttachmentHistoryInfo.Provider.Get()
-            .WhereEquals("AttachmentGUID", attachmentHistory.AttachmentGUID)
+        var lastVersion = AttachmentHistoryInfo.Provider.Get()
+            .WhereEquals("AttachmentGUID", newAttachmentHistory.AttachmentGUID)
             .OrderByDescending("AttachmentLastModified")
             .Columns(
                 nameof(AttachmentHistoryInfo.AttachmentGUID),
@@ -98,24 +98,24 @@ public class TinyPngModule : Module
             .TopN(1)
             .FirstOrDefault();
 
-        if (IsSame(attachmentHistory, latest))
+        if (IsSame(newAttachmentHistory, lastVersion))
         {
             return;
         }
 
-        var newBinary = Shrink(attachmentHistory.AttachmentBinary, settings);
-        attachmentHistory.AttachmentBinary = newBinary.ToArray();
-        attachmentHistory.AttachmentSize = ValidationHelper.GetInteger(newBinary.Length, 0);
+        var newBinary = Shrink(newAttachmentHistory.AttachmentBinary, settings);
+        newAttachmentHistory.AttachmentBinary = newBinary;
+        newAttachmentHistory.AttachmentSize = ValidationHelper.GetInteger(newBinary.Length, 0);
     }
 
-    private void ShrinkAttachment(AttachmentInfo attachment, ITinyPngSettingsProvider settings)
+    private void ShrinkAttachment(AttachmentInfo newAttachment, ITinyPngSettingsProvider settings)
     {
-        if (!IsExtensionAllowed(attachment.AttachmentExtension, settings))
+        if (!IsExtensionAllowed(newAttachment.AttachmentExtension, settings))
         {
             return;
         }
 
-        var document = DocumentHelper.GetDocument(attachment.AttachmentDocumentID, new TreeProvider());
+        var document = DocumentHelper.GetDocument(newAttachment.AttachmentDocumentID, new TreeProvider());
 
         // If the attachment is on a document under workflow, we should ignore and let attachment history take over.
         if (document.WorkflowStep != null)
@@ -123,17 +123,17 @@ public class TinyPngModule : Module
             return;
         }
 
-        var currentAttachment = AttachmentInfo.Provider.GetWithoutBinary(attachment.AttachmentID);
+        var lastAttachment = AttachmentInfo.Provider.GetWithoutBinary(newAttachment.AttachmentID);
 
         // If the attachment is the same, then ignore so we don't re-shrink the same image.
-        if (IsSame(attachment, currentAttachment))
+        if (IsSame(newAttachment, lastAttachment))
         {
             return;
         }
 
-        var newBinary = Shrink(attachment.AttachmentBinary, settings);
-        attachment.AttachmentBinary = newBinary.ToArray();
-        attachment.AttachmentSize = ValidationHelper.GetInteger(newBinary.Length, 0);
+        var newBinary = Shrink(newAttachment.AttachmentBinary, settings);
+        newAttachment.AttachmentBinary = newBinary;
+        newAttachment.AttachmentSize = ValidationHelper.GetInteger(newBinary.Length, 0);
     }
 
     private static bool IsSame(IAttachment a, IAttachment b)

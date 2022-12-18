@@ -15,7 +15,58 @@ This module was inspired by [DeleteAgency.Kentico12.TinyPng](https://github.com/
 
 Install the package to your CMS project. Click the NuGet or MyGet badges above for instructions specific to your SDK.
 
-Configure the module. At minimum, you'll need to provide `TinyPng:ApiKey` with an [API key](https://tinypng.com/developers) in your AppSettings.
+Configure the module. At minimum, you'll need to provide `TinyPng:ApiKey` with an [API key](https://tinypng.com/developers) in your AppSettings. See the configuration section for more details.
+
+```xml
+<appSettings>
+    <add key="TinyPng:ApiKey" value="your-api-key" />
+<appSettings>
+```
+
+TODO: Install as NuGet and test if these are needed.
+
+You may need to add the following binding redirects in your CMS's web.config if they aren't there.
+
+You may also need to install System.Text.Json v6.0.0.
+
+```xml
+<assemblyBinding>
+  <dependentAssembly>
+    <assemblyIdentity name="CMS.Base" publicKeyToken="834b12a258f213f9" culture="neutral" />
+    <bindingRedirect oldVersion="0.0.0.0-13.0.13.0" newVersion="13.0.13.0" />
+  </dependentAssembly>
+  <dependentAssembly>
+    <assemblyIdentity name="CMS.Core" publicKeyToken="834b12a258f213f9" culture="neutral" />
+    <bindingRedirect oldVersion="0.0.0.0-13.0.13.0" newVersion="13.0.13.0" />
+  </dependentAssembly>
+  <dependentAssembly>
+    <assemblyIdentity name="CMS.DataEngine" publicKeyToken="834b12a258f213f9" culture="neutral" />
+    <bindingRedirect oldVersion="0.0.0.0-13.0.13.0" newVersion="13.0.13.0" />
+  </dependentAssembly>
+  <dependentAssembly>
+    <assemblyIdentity name="CMS.DocumentEngine" publicKeyToken="834b12a258f213f9" culture="neutral" />
+    <bindingRedirect oldVersion="0.0.0.0-13.0.13.0" newVersion="13.0.13.0" />
+  </dependentAssembly>
+  <dependentAssembly>
+    <assemblyIdentity name="CMS.Helpers" publicKeyToken="834b12a258f213f9" culture="neutral" />
+    <bindingRedirect oldVersion="0.0.0.0-13.0.13.0" newVersion="13.0.13.0" />
+  </dependentAssembly>
+  <dependentAssembly>
+    <assemblyIdentity name="CMS.MediaLibrary" publicKeyToken="834b12a258f213f9" culture="neutral" />
+    <bindingRedirect oldVersion="0.0.0.0-13.0.13.0" newVersion="13.0.13.0" />
+  </dependentAssembly>
+  <dependentAssembly>
+    <assemblyIdentity name="CMS.SiteProvider" publicKeyToken="834b12a258f213f9" culture="neutral" />
+    <bindingRedirect oldVersion="0.0.0.0-13.0.13.0" newVersion="13.0.13.0" />
+  </dependentAssembly>
+  <dependentAssembly>
+    <assemblyIdentity name="CMS.WorkflowEngine" publicKeyToken="834b12a258f213f9" culture="neutral" />
+    <bindingRedirect oldVersion="0.0.0.0-13.0.13.0" newVersion="13.0.13.0" />
+  </dependentAssembly>
+</assemblyBinding>
+```
+
+## Configuration
 
 The [default settings provider](src/KenticoCommunity.TinyPng/TinyPngSettingsFromAppSettingsProvider.cs) has defaults for the other settings, but they can be overridden. Setting `TinyPng:IsEnabled` to false will disable the module. The default provider pulls settings at runtime, so there's no need to restart the app when changing settings.
 
@@ -46,3 +97,55 @@ See the /build folder for scripts used to build this project. Run build.ps1 to m
 ```
 
 There are [VSCode](https://code.visualstudio.com/) tasks for each script. The build task (ctrl + shift + b) performs the standard CI build.
+
+## Notes
+
+AttachmentHashes don't appear to be used at all OOB. We have code in case they are present to know more accurately if the image is the same. Otherwise we'll fallback to size in bytes.
+
+Copying pages/media and using the image editor will result in re-shrinking and possibly deep-fried images. TODO: can we detect these events and bail?
+
+I recommend installing this on your authoring environment (where the content is edited). If you install on an environment that accepts staging tasks, you might re-shrink images (my assumption, I have not tested this).
+
+### No workflow
+
+Attachment without page workflows and Media uploads/edits:
+
+* The event is hit once and the image is shrunk.
+
+When the page is saved without workflow:
+
+* No event hit.
+
+When pages are copied without workflow:
+
+* The Attachment event is hit TWICE and the image is shrank twice. TODO: detect this and bail on second event, the second binary is discarded.
+
+### Workflow
+
+Attachment uploads and edits under page workflow results in the following:
+
+* AttachmentHistory event is hit first. We look up the last version of the history. If they aren't the same binary, we'll shrink and save.
+* Then Attachment event is hit. Since WorkflowStep is not null, we drop out and don't shrink it. This second binary seems to be ignored by the CMS and not saved on the record, the record actually takes our shrunk AttachmentHistory binary.
+
+When the attachment's page is saved under workflow:
+
+* Then Attachment event is hit, but WorkflowStep is not null, so we bail. This results in a no-op. The attachment history exists from when it was uploaded before the page was saved.
+
+When attachment's page is copied under workflow:
+
+* The Attachment event hits and bails due to workflow.
+* AttachmentHistory event hits and shrinks.
+* Then the Attachment event is hit again, but workflow is null and the image is shrunk again (This second binary is discarded). TODO: Detect this and bail.
+
+## Queries
+
+Queries used for testing:
+
+```sql
+select AttachmentName, AttachmentSize from CMS_Attachment
+where AttachmentDocumentID = 64
+
+select AttachmentName, AttachmentSize from CMS_AttachmentHistory
+where AttachmentDocumentID = 64
+order by AttachmentLastModified desc
+```
