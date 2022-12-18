@@ -98,7 +98,7 @@ public class TinyPngModule : Module
             .TopN(1)
             .FirstOrDefault();
 
-        if (latest != null && latest.AttachmentSize == attachmentHistory.AttachmentSize)
+        if (IsSame(attachmentHistory, latest))
         {
             return;
         }
@@ -136,7 +136,7 @@ public class TinyPngModule : Module
         attachment.AttachmentSize = ValidationHelper.GetInteger(newBinary.Length, 0);
     }
 
-    private static bool IsSame(AttachmentInfo a, AttachmentInfo b)
+    private static bool IsSame(IAttachment a, IAttachment b)
     {
         if (a is null || b is null)
         {
