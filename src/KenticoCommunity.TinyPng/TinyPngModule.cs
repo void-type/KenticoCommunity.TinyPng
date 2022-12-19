@@ -25,6 +25,8 @@ public class TinyPngModule : Module
 
         Service.Resolve<IEventLogService>().LogInformation(nameof(TinyPngModule), nameof(OnInit), "Module initializing.");
 
+        // TODO: detect page and media copies. Media/attachment image edits? See TODOs in README
+
         AttachmentHistoryInfo.TYPEINFO.Events.Insert.Before += BeforeFileSave;
 
         AttachmentInfo.TYPEINFO.Events.Insert.Before += BeforeFileSave;
