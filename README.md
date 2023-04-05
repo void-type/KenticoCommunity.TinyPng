@@ -14,6 +14,9 @@ This module was inspired by [DeleteAgency.Kentico12.TinyPng](https://github.com/
 
 ## Installation and setup
 
+**Note**
+This package is still a work in progress.
+
 Install the package to your CMS project. Click the NuGet or MyGet badges above for instructions specific to your SDK.
 
 Configure the module. At minimum, you'll need to provide `TinyPng:ApiKey` with an [API key](https://tinypng.com/developers) in your AppSettings. See the configuration section for more details.
