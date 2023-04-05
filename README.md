@@ -5,6 +5,7 @@
 
 [![License](https://img.shields.io/github/license/void-type/KenticoCommunity.TinyPng.svg)](https://github.com/void-type/KenticoCommunity.TinyPng/blob/main/LICENSE.txt)
 [![Build Status](https://img.shields.io/azure-devops/build/void-type/VoidCore/23.svg)](https://dev.azure.com/void-type/VoidCore/_build/latest?definitionId=23&branchName=main)
+
 <!-- [![Test Coverage](https://img.shields.io/azure-devops/coverage/void-type/VoidCore/23.svg)](https://dev.azure.com/void-type/VoidCore/_build/latest?definitionId=23&branchName=main) -->
 
 [KenticoCommunity.TinyPng](https://github.com/void-type/KenticoCommunity.TinyPng) is a Kentico Xperience 13 module that intercepts image uploads and compresses them using the [TinyPNG API](https://tinypng.com). This module can save your editors time over manual compression and improve your website performance.
@@ -72,13 +73,13 @@ The [default settings provider](src/KenticoCommunity.TinyPng/TinyPngSettingsFrom
 
 If you prefer to pull settings from elsewhere, you can create your own implementation of [ITinyPngSettingsProvider](src/KenticoCommunity.TinyPng/ITinyPngSettingsProvider.cs). Register your provider to Kentico's IoC container using one of the following methods:
 
-* Using an [attribute](https://devnet.kentico.com/docs/13_0/api/html/T_CMS_RegisterImplementationAttribute.htm).
+- Using an [attribute](https://devnet.kentico.com/docs/13_0/api/html/T_CMS_RegisterImplementationAttribute.htm).
 
 ```csharp
 [assembly: RegisterImplementation(typeof(ITinyPngSettingsProvider), typeof(MyTinyPngSettingsProvider))]
 ```
 
-* Using [Service.Use](https://devnet.kentico.com/docs/13_0/api/html/Overload_CMS_Core_Service_Use.htm) in a custom module's `OnPreInit()` method.
+- Using [Service.Use](https://devnet.kentico.com/docs/13_0/api/html/Overload_CMS_Core_Service_Use.htm) in a custom module's `OnPreInit()` method.
 
 ```csharp
 Service.Use<ITinyPngSettingsProvider>(() => new MyTinyPngSettingsProvider());
@@ -106,46 +107,38 @@ Copying pages/media and using the image editor will result in re-shrinking and p
 
 I recommend installing this on your authoring environment (where the content is edited). If you install on an environment that accepts staging tasks, you might re-shrink images (my assumption, I have not tested this).
 
-### No workflow
+### No page workflow
 
-Attachment without page workflows and Media uploads/edits:
+Attachment and Media uploads/edits (media doesn't care if the page has a workflow or not):
 
-* The event is hit once and the image is shrunk.
+- The event is hit once and the image is shrunk.
+- WARNING: Editing images in the media library can result in re-compression of an image. It's better to edit the raw image externally and re-upload. There doesn't seem to be a way to detect an edit vs update (upload replacement).
 
-When the page is saved without workflow:
+Page is saved:
 
-* No event hit.
+- No event hit.
 
-When pages are copied without workflow:
+Page is copied:
 
-* The Attachment event is hit TWICE and the image is shrank twice. TODO: detect this and bail on second event, the second binary is discarded.
+- The Attachment event is hit **TWICE** and the image is shrank twice, the second event's binary is discarded.
+- TODO: detect second event and bail.
 
 ### Workflow
 
 Attachment uploads and edits under page workflow results in the following:
 
-* AttachmentHistory event is hit first. We look up the last version of the history. If they aren't the same binary, we'll shrink and save.
-* Then Attachment event is hit. Since WorkflowStep is not null, we drop out and don't shrink it. This second binary seems to be ignored by the CMS and not saved on the record, the record actually takes our shrunk AttachmentHistory binary.
+- First, AttachmentHistory event is hit. We look up the last version of the history. If they aren't the same binary, we'll shrink and save.
+- Second, Attachment event is hit. Since WorkflowStep is not null, we bail. This second binary seems to be ignored by the CMS and not saved on the record, the record actually takes our shrunk AttachmentHistory binary.
+- TODO: Verify that the attachment binary really isn't used anywhere.
 
 When the attachment's page is saved under workflow:
 
-* Then Attachment event is hit, but WorkflowStep is not null, so we bail. This results in a no-op. The attachment history exists from when it was uploaded before the page was saved.
+- Then Attachment event is hit, but WorkflowStep is not null, so we bail. This results in a no-op. The attachment history exists from when it was uploaded before the page was saved.
 
 When attachment's page is copied under workflow:
 
-* The Attachment event hits and bails due to workflow.
-* AttachmentHistory event hits and shrinks.
-* Then the Attachment event is hit again, but workflow is null and the image is shrunk again (This second binary is discarded). TODO: Detect this and bail.
+- First, Attachment event hits and bails due to workflow.
+- Second, AttachmentHistory event hits and shrinks.
+- Third, Attachment event is hit again, but workflow is **NULL** and the image is shrunk again (This second binary is discarded).
+- TODO: Detect third event (second Attachment) and bail.
 
-## Queries
-
-Queries used for testing:
-
-```sql
-select AttachmentName, AttachmentSize from CMS_Attachment
-where AttachmentDocumentID = 64
-
-select AttachmentName, AttachmentSize from CMS_AttachmentHistory
-where AttachmentDocumentID = 64
-order by AttachmentLastModified desc
-```

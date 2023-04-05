@@ -25,7 +25,7 @@ public class TinyPngModule : Module
 
         Service.Resolve<IEventLogService>().LogInformation(nameof(TinyPngModule), nameof(OnInit), "Module initializing.");
 
-        // TODO: detect page and media copies. Media/attachment image edits? See TODOs in README
+        // TODO: See TODOs in README
 
         AttachmentHistoryInfo.TYPEINFO.Events.Insert.Before += BeforeFileSave;
 
@@ -34,9 +34,6 @@ public class TinyPngModule : Module
 
         MediaFileInfo.TYPEINFO.Events.Insert.Before += BeforeFileSave;
         MediaFileInfo.TYPEINFO.Events.Update.Before += BeforeFileSave;
-
-        MetaFileInfo.TYPEINFO.Events.Insert.Before += BeforeFileSave;
-        MetaFileInfo.TYPEINFO.Events.Update.Before += BeforeFileSave;
     }
 
     private void BeforeFileSave(object sender, ObjectEventArgs e)
@@ -53,24 +50,16 @@ public class TinyPngModule : Module
 
             switch (e.Object)
             {
-                // Used when workflow is enabled on the attachment's page
                 case AttachmentHistoryInfo attachmentHistory:
                     ShrinkAttachmentHistory(attachmentHistory, settings);
                     break;
 
-                // Used when workflow is not enabled on the attachment's page
                 case AttachmentInfo attachment:
                     ShrinkAttachment(attachment, settings);
                     break;
 
-                // Media files
                 case MediaFileInfo mediaFile:
                     ShrinkMediaFile(mediaFile, settings);
-                    break;
-
-                // Meta files
-                case MetaFileInfo metaFile:
-                    ShrinkMetaFile(metaFile, settings);
                     break;
 
                 default:
@@ -100,7 +89,7 @@ public class TinyPngModule : Module
             .TopN(1)
             .FirstOrDefault();
 
-        if (IsSame(newAttachmentHistory, lastVersion))
+        if (AttachmentsAreSame(newAttachmentHistory, lastVersion))
         {
             return;
         }
@@ -128,7 +117,7 @@ public class TinyPngModule : Module
         var lastAttachment = AttachmentInfo.Provider.GetWithoutBinary(newAttachment.AttachmentID);
 
         // If the attachment is the same, then ignore so we don't re-shrink the same image.
-        if (IsSame(newAttachment, lastAttachment))
+        if (AttachmentsAreSame(newAttachment, lastAttachment))
         {
             return;
         }
@@ -138,7 +127,7 @@ public class TinyPngModule : Module
         newAttachment.AttachmentSize = ValidationHelper.GetInteger(newBinary.Length, 0);
     }
 
-    private static bool IsSame(IAttachment a, IAttachment b)
+    private static bool AttachmentsAreSame(IAttachment a, IAttachment b)
     {
         if (a is null || b is null)
         {
@@ -164,32 +153,13 @@ public class TinyPngModule : Module
         var originalBinary = mediaFile.FileBinary ?? GetMediaBinary(mediaFile);
 
         var newBinary = Shrink(originalBinary, settings);
-        mediaFile.FileBinary = newBinary.ToArray();
+        mediaFile.FileBinary = newBinary;
         mediaFile.FileSize = ValidationHelper.GetInteger(newBinary.Length, 0);
     }
 
     private static byte[] GetMediaBinary(MediaFileInfo mediaFile)
     {
         return MediaFileInfoProvider.GetFile(mediaFile, MediaLibraryInfo.Provider.Get(mediaFile.FileLibraryID).LibraryFolder, SiteInfoProvider.GetSiteName(mediaFile.FileSiteID));
-    }
-
-    private void ShrinkMetaFile(MetaFileInfo metaFile, ITinyPngSettingsProvider settings)
-    {
-        if (!IsExtensionAllowed(metaFile.MetaFileExtension, settings))
-        {
-            return;
-        }
-
-        var originalBinary = metaFile.MetaFileBinary ?? GetMetaBinary(metaFile);
-
-        var newBinary = Shrink(originalBinary, settings);
-        metaFile.MetaFileBinary = newBinary.ToArray();
-        metaFile.MetaFileSize = ValidationHelper.GetInteger(newBinary.Length, 0);
-    }
-
-    private static byte[] GetMetaBinary(MetaFileInfo metaFile)
-    {
-        return MetaFileInfoProvider.GetFile(metaFile, SiteInfoProvider.GetSiteName(metaFile.MetaFileSiteID));
     }
 
     private bool IsExtensionAllowed(string fileExtension, ITinyPngSettingsProvider settings)
