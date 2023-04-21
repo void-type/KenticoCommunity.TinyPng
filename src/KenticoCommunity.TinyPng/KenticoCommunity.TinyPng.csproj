@@ -2,7 +2,7 @@
 
   <ItemGroup>
     <PackageReference Include="Kentico.Xperience.Libraries" Version="13.0.0" PrivateAssets="all" />
-    <PackageReference Include="System.Configuration.ConfigurationManager" Version="4.7.0" />
+    <PackageReference Include="System.Configuration.ConfigurationManager" Version="7.0.0" />
     <PackageReference Include="Tinify" Version="1.6.0" />
   </ItemGroup>
 

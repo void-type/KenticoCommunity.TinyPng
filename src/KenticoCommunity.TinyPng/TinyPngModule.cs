@@ -25,8 +25,6 @@ public class TinyPngModule : Module
 
         Service.Resolve<IEventLogService>().LogInformation(nameof(TinyPngModule), nameof(OnInit), "Module initializing.");
 
-        // TODO: See TODOs in README
-
         AttachmentHistoryInfo.TYPEINFO.Events.Insert.Before += BeforeFileSave;
 
         AttachmentInfo.TYPEINFO.Events.Insert.Before += BeforeFileSave;
