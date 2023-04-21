@@ -1,12 +1,10 @@
 # KenticoCommunity.TinyPng
 
+[![License](https://img.shields.io/github/license/void-type/KenticoCommunity.TinyPng.svg)](https://github.com/void-type/KenticoCommunity.TinyPng/blob/main/LICENSE.txt)
 [![NuGet package](https://img.shields.io/nuget/v/KenticoCommunity.TinyPng.svg)](https://www.nuget.org/packages/KenticoCommunity.TinyPng/)
 [![MyGet package](https://img.shields.io/myget/voidcoredev/vpre/KenticoCommunity.TinyPng.svg?label=myget)](https://www.myget.org/feed/voidcoredev/package/nuget/KenticoCommunity.TinyPng)
-
-[![License](https://img.shields.io/github/license/void-type/KenticoCommunity.TinyPng.svg)](https://github.com/void-type/KenticoCommunity.TinyPng/blob/main/LICENSE.txt)
-[![Build Status](https://img.shields.io/azure-devops/build/void-type/VoidCore/23.svg)](https://dev.azure.com/void-type/VoidCore/_build/latest?definitionId=23&branchName=main)
-
-<!-- [![Test Coverage](https://img.shields.io/azure-devops/coverage/void-type/VoidCore/23.svg)](https://dev.azure.com/void-type/VoidCore/_build/latest?definitionId=23&branchName=main) -->
+[![Build Status](https://img.shields.io/azure-devops/build/void-type/VoidCore/23/main)](https://dev.azure.com/void-type/VoidCore/_build/latest?definitionId=23&branchName=main)
+<!-- [![Test Coverage](https://img.shields.io/azure-devops/coverage/void-type/VoidCore/23/main)](https://dev.azure.com/void-type/VoidCore/_build/latest?definitionId=23&branchName=main) -->
 
 [KenticoCommunity.TinyPng](https://github.com/void-type/KenticoCommunity.TinyPng) is a Kentico Xperience 13 module that intercepts image uploads and compresses them using the [TinyPNG API](https://tinypng.com). This module can save your editors time over manual compression and improve your website performance.
 
